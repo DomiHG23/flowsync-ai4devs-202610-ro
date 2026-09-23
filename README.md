@@ -38,19 +38,19 @@ Hay tres momentos, y saberlos cambia cómo aprovechas cada uno.
 
 ### 3. Tu fork, en la rama de partida
 
-Repo del proyecto en la rama **`s4/start`**, **sobre tu propio fork** de [`github.com/LIDR-academy/flowsync-ai4devs`](https://github.com/LIDR-academy/flowsync-ai4devs). Sobre un clon directo del repo del curso **no tienes permiso de push**, y lo descubrirías al intentar subir tu trabajo.
+Repo del proyecto en la rama **`s4/start`**, **sobre tu propio fork** de [`github.com/LIDR-academy/flowsync-ai4devs-202610-ro`](https://github.com/LIDR-academy/flowsync-ai4devs-202610-ro). Sobre un clon directo del repo del curso **no tienes permiso de push**, y lo descubrirías al intentar subir tu trabajo.
 
 ```bash
-# 1. Fork desde la web: botón "Fork" en github.com/LIDR-academy/flowsync-ai4devs
+# 1. Fork desde la web: botón "Fork" en github.com/LIDR-academy/flowsync-ai4devs-202610-ro
 
 # 2a. Si AÚN NO has clonado: clona TU fork (no el del curso)
-git clone git@github.com:<tu-usuario>/flowsync-ai4devs.git
-cd flowsync-ai4devs
-git remote add upstream git@github.com:LIDR-academy/flowsync-ai4devs.git
+git clone git@github.com:<tu-usuario>/flowsync-ai4devs-202610-ro.git
+cd flowsync-ai4devs-202610-ro
+git remote add upstream git@github.com:LIDR-academy/flowsync-ai4devs-202610-ro.git
 
 # 2b. Si YA clonaste el del curso: no vuelvas a clonar, recoloca los remotos
 git remote rename origin upstream
-git remote add origin git@github.com:<tu-usuario>/flowsync-ai4devs.git
+git remote add origin git@github.com:<tu-usuario>/flowsync-ai4devs-202610-ro.git
 
 # 2c. Si ya venías trabajando sobre tu fork: solo comprueba que están los dos
 git remote -v          # origin = TU fork · upstream = el repo del curso
@@ -65,7 +65,7 @@ git push -u origin s4/start
 
 > 📌 **Un fork es una foto del momento, y el curso sigue publicando ramas.** Las que aún no se han publicado **todavía no existen** en tu fork, y tu fork no se entera solo: por eso el `git fetch upstream` va antes del `checkout`. Si te contesta *"pathspec did not match"*, casi siempre es esto. Si te contesta *"'upstream' does not appear to be a git repository"*, te falta el `git remote add` del paso 2. Y si el `push` del paso 4 te rechaza por permisos, es que `origin` sigue apuntando al repo del curso: vuelve al 2b.
 
-> 📌 **Si te sale `Permission denied (publickey)`, es SSH, no el fork.** Los comandos de arriba usan URLs SSH (`git@github.com:…`), que necesitan una clave subida a tu cuenta de GitHub. O [súbela ahora](https://docs.github.com/es/authentication/connecting-to-github-with-ssh), que son cinco minutos y te sirve para el resto del curso, o cambia las URLs por su versión HTTPS (`https://github.com/<tu-usuario>/flowsync-ai4devs.git` y `https://github.com/LIDR-academy/flowsync-ai4devs.git`). Cualquiera de las dos vale; lo que no vale es descubrirlo el día del directo.
+> 📌 **Si te sale `Permission denied (publickey)`, es SSH, no el fork.** Los comandos de arriba usan URLs SSH (`git@github.com:…`), que necesitan una clave subida a tu cuenta de GitHub. O [súbela ahora](https://docs.github.com/es/authentication/connecting-to-github-with-ssh), que son cinco minutos y te sirve para el resto del curso, o cambia las URLs por su versión HTTPS (`https://github.com/<tu-usuario>/flowsync-ai4devs-202610-ro.git` y `https://github.com/LIDR-academy/flowsync-ai4devs-202610-ro.git`). Cualquiera de las dos vale; lo que no vale es descubrirlo el día del directo.
 
 ### 4. Dependencias instaladas y el proyecto levanta
 
