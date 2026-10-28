@@ -19,10 +19,20 @@ export function LoginPage() {
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (submitting) return
+
+    const trimmedEmail = email.trim()
+    const fields: Record<string, string> = {}
+    if (!trimmedEmail) fields.email = 'Este campo es obligatorio.'
+    if (!password) fields.password = 'Este campo es obligatorio.'
+    if (Object.keys(fields).length > 0) {
+      setErrors({ fields })
+      return
+    }
+
     setSubmitting(true)
     setErrors({ fields: {} })
     try {
-      const { token } = await login(email.trim(), password)
+      const { token } = await login(trimmedEmail, password)
       setToken(token)
       navigate('/profile', { replace: true })
     } catch (error) {
@@ -70,10 +80,7 @@ export function LoginPage() {
           onChange={(event) => setPassword(event.target.value)}
           error={errors.fields.password}
         />
-        <Button
-          type="submit"
-          disabled={submitting || !email.trim() || !password}
-        >
+        <Button type="submit" disabled={submitting}>
           {submitting ? 'Entrando…' : 'Entrar'}
         </Button>
       </form>

@@ -1,9 +1,10 @@
 /**
- * Thin client for the FlowSync API. Requests go to relative `/api/v1/...`
- * URLs, which the Vite dev server proxies to the backend.
+ * Thin client for the FlowSync API. By default requests go to relative
+ * `/api/v1/...` URLs, which the Vite dev server proxies to the backend; set
+ * `VITE_API_URL` (e.g. `https://api.example.com/api/v1`) for other setups.
  */
 
-const BASE_URL = '/api/v1'
+const BASE_URL = import.meta.env.VITE_API_URL ?? '/api/v1'
 
 export type User = {
   id: number
@@ -86,7 +87,7 @@ async function apiFetch<T>(
   }
 
   // Every successful payload is wrapped in `{ data: ... }` by `ctx.serialize()`.
-  return (payload as { data: T }).data
+  return (payload as { data: T } | null)?.data as T
 }
 
 export function login(email: string, password: string) {

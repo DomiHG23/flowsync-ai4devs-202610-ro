@@ -101,8 +101,6 @@ export function SignupPage() {
           type="password"
           autoComplete="new-password"
           required
-          minLength={PASSWORD_MIN}
-          maxLength={PASSWORD_MAX}
           value={password}
           onChange={(event) => setPassword(event.target.value)}
           error={errors.fields.password}

@@ -25,6 +25,7 @@ export function ProfilePage() {
   const navigate = useNavigate()
   const [state, setState] = useState<State>({ status: 'loading' })
   const [reloadKey, setReloadKey] = useState(0)
+  const [loggingOut, setLoggingOut] = useState(false)
 
   useEffect(() => {
     if (!token) return
@@ -36,9 +37,8 @@ export function ProfilePage() {
       .catch((error: unknown) => {
         if (cancelled) return
         if (error instanceof ApiError && error.status === 401) {
-          // Expired or revoked token: drop it and send the user back to login.
+          // Expired or revoked token: dropping it makes <RequireAuth> redirect to login.
           clearToken()
-          navigate('/login', { replace: true })
           return
         }
         setState({
@@ -49,9 +49,11 @@ export function ProfilePage() {
     return () => {
       cancelled = true
     }
-  }, [token, clearToken, navigate, reloadKey])
+  }, [token, clearToken, reloadKey])
 
   async function handleLogout() {
+    if (loggingOut) return
+    setLoggingOut(true)
     if (token) {
       // Best effort: the local session ends even if the server call fails.
       await logout(token).catch(() => undefined)
@@ -114,8 +116,13 @@ export function ProfilePage() {
           )}
         </CardContent>
         <CardFooter>
-          <Button variant="outline" className="w-full" onClick={handleLogout}>
-            Cerrar sesión
+          <Button
+            variant="outline"
+            className="w-full"
+            onClick={handleLogout}
+            disabled={loggingOut}
+          >
+            {loggingOut ? 'Cerrando sesión…' : 'Cerrar sesión'}
           </Button>
         </CardFooter>
       </Card>
