@@ -13,7 +13,7 @@ help:
 
 check-node:
 	@command -v node >/dev/null 2>&1 || { echo "Error: Node.js no está instalado (se requiere 24+)." >&2; exit 1; }
-	@case "$$(command -v node)" in /mnt/*) \
+	@case "$$(command -v node)" in /mnt/[a-z]/*) \
 		echo "Error: estás usando el Node de Windows ($$(command -v node)). Instala Node 24+ dentro de WSL." >&2; exit 1;; \
 	esac
 	@node -e 'process.exit(+process.versions.node.split(".")[0] < 24 ? 1 : 0)' || \
@@ -27,7 +27,8 @@ setup: check-node
 	else \
 		echo "backend/.env ya existe, no se toca"; \
 	fi
-	@if grep -Eq '^APP_KEY=.+' backend/.env; then \
+	@key=$$(sed -n 's/^APP_KEY=//p' backend/.env | tr -d " \t\r\"'"); \
+	if [ -n "$$key" ]; then \
 		echo "APP_KEY ya definida, no se regenera"; \
 	else \
 		cd backend && node ace generate:key; \
@@ -39,7 +40,9 @@ start: check-node
 		[ -d $$d/node_modules ] || { echo "Error: faltan dependencias en $$d/. Ejecuta 'make setup'." >&2; exit 1; }; \
 	done
 	@[ -f backend/.env ] || { echo "Error: falta backend/.env. Ejecuta 'make setup'." >&2; exit 1; }
-	@trap 'kill 0' INT TERM; \
-	(cd backend && $(NPM) run dev) & \
-	(cd frontend && $(NPM) run dev) & \
-	wait
+	@trap 'trap - INT TERM; kill -INT 0' INT TERM; \
+	(cd backend && $(NPM) run dev) & be=$$!; \
+	(cd frontend && $(NPM) run dev) & fe=$$!; \
+	while kill -0 $$be 2>/dev/null && kill -0 $$fe 2>/dev/null; do sleep 1; done; \
+	echo "Uno de los servidores se ha detenido; parando el otro." >&2; \
+	trap - INT TERM; kill -INT 0
