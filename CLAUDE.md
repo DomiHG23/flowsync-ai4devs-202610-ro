@@ -12,6 +12,8 @@ Requires Node.js 24+ (Node 20 fails with `Unknown file extension ".ts"`).
 
 ## Commands
 
+From the repo root (macOS, Linux, WSL): `make setup` (idempotent: installs both projects, creates `backend/.env`, generates `APP_KEY` if empty, runs migrations) and `make start` (runs both dev servers; Ctrl-C or either one dying stops both).
+
 Backend (`cd backend`), served at http://localhost:3333:
 
 ```bash
