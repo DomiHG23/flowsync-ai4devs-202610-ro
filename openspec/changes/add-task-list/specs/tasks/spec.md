@@ -117,6 +117,11 @@ Una tarea SHALL estar siempre en exactamente uno de los estados `pending`, `in_p
 - **WHEN** se intenta actualizar una tarea con `status` igual a `Hecho`
 - **THEN** la respuesta tiene estado 422 con un error sobre el campo `status`
 
+#### Scenario: Estado nulo o vacío
+
+- **WHEN** se intenta actualizar una tarea con `status` igual a `null` o a una cadena vacía
+- **THEN** la respuesta tiene estado 422 con un error sobre el campo `status`, y la tarea conserva su estado anterior
+
 ### Requirement: Cambio de estado de cualquier tarea
 
 La API SHALL permitir, con `PATCH /api/v1/tasks/:id` y un `status` válido, cambiar el estado de cualquier tarea a cualquiera de los tres estados, sea quien sea su responsable y sea cual sea su estado actual, y SHALL responder con estado 200 y la tarea actualizada en `{ data: task }`.
@@ -147,7 +152,7 @@ La API SHALL permitir, con `PATCH /api/v1/tasks/:id` y un `assigneeId`, asignar 
 
 #### Scenario: Responsable inexistente
 
-- **WHEN** se actualiza una tarea con un `assigneeId` que no pertenece a ninguna cuenta
+- **WHEN** se actualiza una tarea con un `assigneeId` que no pertenece a ninguna cuenta, o igual a `null`
 - **THEN** la respuesta tiene estado 422 con un error sobre `assigneeId`, y la tarea no cambia
 
 #### Scenario: El título no se edita
@@ -208,13 +213,18 @@ La aplicación web SHALL ofrecer, solo a personas con sesión iniciada, una pant
 
 #### Scenario: Responsable sin nombre
 
-- **WHEN** la lista contiene una tarea cuyo responsable no tiene nombre completo
+- **WHEN** la lista contiene una tarea cuyo responsable no tiene nombre completo, o lo tiene formado solo por espacios
 - **THEN** en el lugar del responsable se ve «Sin nombre», y nunca su correo ni su identificador
 
 #### Scenario: Sin fechas en la lista
 
 - **WHEN** una persona recorre la lista
 - **THEN** ninguna fila muestra fechas ni marcas de vencimiento
+
+#### Scenario: Sin señales de presencia
+
+- **WHEN** otras personas del equipo están usando la aplicación a la vez
+- **THEN** la lista no muestra quién está conectado ni ninguna actividad por persona
 
 #### Scenario: Una sola lista para todos
 
@@ -305,6 +315,11 @@ La aplicación web SHALL mostrar un indicador de carga mientras pide la lista y,
 
 - **WHEN** una persona con sesión abre la lista y el servidor no responde
 - **THEN** ve el aviso «No se pudo conectar con el servidor. Comprueba que el backend está arrancado.» y no ve el mensaje de lista vacía
+
+#### Scenario: Sesión revocada al abrir la lista
+
+- **WHEN** una persona abre la lista y el servidor rechaza su token porque fue revocado desde otro sitio
+- **THEN** ve el aviso «Tu sesión ha caducado. Vuelve a iniciar sesión.» en lugar de la lista, y sigue pudiendo cerrar sesión desde «Perfil»
 
 ### Requirement: Navegación entre tareas y perfil
 

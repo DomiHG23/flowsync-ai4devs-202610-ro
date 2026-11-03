@@ -36,9 +36,12 @@ La motivación y el alcance están en `proposal.md`, y el comportamiento exigido
 
 ### D1. Estado como enumeración cerrada definida una sola vez
 
-- **Backend:** una constante `TASK_STATUSES = ['pending', 'in_progress', 'done'] as const`, exportada junto al modelo. De ella salen:
+- **Backend:** una constante `TASK_STATUSES = ['pending', 'in_progress', 'done'] as const` y su tipo `TaskStatus`, en un módulo propio, `app/models/task_status.ts`, que no importa nada del esquema generado. De ella salen:
   - la columna, con `table.enum('status', TASK_STATUSES)`, que en SQLite crea un `CHECK` como segunda barrera;
-  - el validador, con `vine.enum(TASK_STATUSES)`.
+  - el validador, con `vine.enum(TASK_STATUSES)`;
+  - el tipo del atributo `status` en el modelo.
+- **Por qué un módulo propio:** la migración no puede importar el modelo. El modelo extiende `TaskSchema`, que solo existe en `database/schema.ts` después de correr la migración, así que importarlo rompería la primera `migration:run`.
+- **Tipo generado:** Lucid probablemente genera `status: string` para la columna enum. Si es así, el modelo redeclara `declare status: TaskStatus` en lugar de tocar `schema.ts` o `schema_rules.ts`.
 - **Frontend:** un tipo `TaskStatus` y un mapa `TASK_STATUS_LABELS` (`pending → Pendiente`, `in_progress → En curso`, `done → Hecho`). El mapa alimenta tanto la fila como las opciones del control, para que no puedan divergir.
 - **Alternativa descartada:** tabla de estados. Va contra «no se pueden añadir ni renombrar estados» y añade una consulta sin ningún valor.
 
@@ -64,9 +67,11 @@ Decisiones sobre las columnas:
   - El `trim` va primero, así que tanto el blanco como el límite se evalúan sobre el texto recortado.
   - Un título solo con espacios falla en `minLength`; uno ausente falla en `required`. Basta con que el error recaiga en `title`.
 - **Actualización:** `status: vine.enum(TASK_STATUSES).optional()` y `assigneeId: vine.number().exists({ table: 'users', column: 'id' }).optional()`.
+- **`null` y cadena vacía:** el bodyparser tiene `convertEmptyStringsToNull: true`, así que `""` llega como `null`. Si `optional()` de VineJS 4 trata `null` como ausente (hay que comprobarlo en sus `.d.ts`), `status: null` o `assigneeId: null` darían 200 sin cambios. Para evitarlo, se usa la variante que solo admite `undefined`; si no existe, el controlador rechaza la presencia explícita de `null` con 422 sobre ese campo. La spec lo exige.
 - **Campos ignorados:** VineJS solo devuelve las claves declaradas. Por eso `status`, `assigneeId` o `dueDate` al crear, y `title` al actualizar, se ignoran sin código adicional.
 - **Actualización vacía:** sin ningún campo, devuelve la tarea sin cambios (200). No se exige «al menos uno», porque no aporta comportamiento observable útil.
-- **Verificar en el arranque de la implementación:** antes de asumir la firma de `.exists` y `vine.enum` en VineJS 4, mirar los `.d.ts` de `node_modules/@vinejs/vine`. Si `.exists` no existe con esa forma, comprobar la existencia en el controlador y lanzar un error de validación sobre `assigneeId` con 422.
+- **Verificar en el arranque de la implementación:** antes de asumir la firma de `.exists` y `vine.enum` en VineJS 4, mirar los `.d.ts` de `node_modules/@vinejs/vine`. Si `.exists` no existe con esa forma, comprobar la existencia en el controlador y lanzar un error de validación con 422, `field: 'assigneeId'` y `rule: 'database.exists'`.
+- **Unidad de «caracteres»:** `maxLength` cuenta unidades UTF-16 (`String.length`), igual que el `maxLength` de la columna en la práctica. Un título con emojis llega antes al límite. Se acepta: la spec fija sus ejemplos en texto sin emojis.
 
 ### D4. Controlador y rutas
 
@@ -91,7 +96,7 @@ Al terminar, se regeneran los ficheros de `.adonisjs/` (registro de controladore
 ### D6. Cliente de API y traducción de errores
 
 - **Funciones nuevas en `lib/api.ts`:** `listTasks(token)`, `createTask(token, { title })` y `updateTask(token, id, { status })`. El tipo de método de `request` admite `PATCH`.
-- **Traducción:** `FIELD_LABELS` incorpora `title`, y `translate` trata `title` aparte:
+- **Traducción:** `FIELD_LABELS` incorpora `title` («el título»), `status` («el estado») y `assigneeId` («el responsable»), y `translate` trata `title` aparte:
   - `maxLength` se traduce como «El título no puede superar los 255 caracteres.»;
   - cualquier otra regla, como «Escribe un título para la tarea.»;
   - `status` inválido muestra el texto genérico «Revisa el estado.».
@@ -112,9 +117,9 @@ Una página nueva en `pages/`, con un layout de una columna dentro de una `Card`
 
 **Lista**
 
-- Se carga al montar la pantalla. Hay tres estados: cargando, con `FullScreenLoader` o un spinner inline; error, con un `Alert` destructivo y el mensaje de `ApiError`; y lista.
+- Se carga al montar la pantalla, ignorando la respuesta si la pantalla ya se ha desmontado. Hay tres estados: cargando, con un spinner inline (no `FullScreenLoader`, cuyo `min-h-svh` empujaría el contenido bajo la cabecera); error, con un `Alert` destructivo y el mensaje de `ApiError`; y lista.
 - Con la lista vacía se muestra el texto explicativo e invita a crear la primera tarea con el formulario de arriba.
-- Cada fila muestra el título, `assignee.fullName ?? 'Sin nombre'` y el control de estado.
+- Cada fila muestra el título, `assignee.fullName?.trim() || 'Sin nombre'` y el control de estado. El `trim` es necesario porque la API de registro admite un nombre formado solo por espacios.
 
 **Control de estado**
 
