@@ -130,7 +130,7 @@ La API SHALL devolver los datos públicos de la cuenta a la que pertenece el tok
 
 ### Requirement: Cálculo de las iniciales
 
-La API SHALL incluir en los datos públicos de la cuenta unas iniciales en mayúsculas derivadas así: si hay nombre completo, se toman sus dos primeras palabras separadas por espacio; si no lo hay, se toman la parte local y el dominio del email. Si hay dos partes, las iniciales son la primera letra de cada una; si solo hay una, son sus dos primeros caracteres.
+La API SHALL incluir en los datos públicos de la cuenta unas iniciales en mayúsculas derivadas así: si hay nombre completo, se parte por cada carácter de espacio y se toman los dos primeros trozos; si no lo hay, se toman la parte local y el dominio del email. Si hay dos partes, las iniciales son la primera letra de cada una; si solo hay una, son sus dos primeros caracteres.
 
 #### Scenario: Nombre con nombre y apellido
 
@@ -255,6 +255,11 @@ La aplicación web SHALL recordar la sesión iniciada entre recargas y cierres d
 - **WHEN** la aplicación arranca con una sesión recordada y el servidor no responde
 - **THEN** la persona llega a la pantalla de inicio de sesión con el aviso "No se pudo conectar con el servidor. Comprueba que el backend está arrancado.", y si recarga cuando el servidor vuelve a estar disponible recupera la sesión sin volver a introducir credenciales
 
+#### Scenario: Error interno del servidor al arrancar
+
+- **WHEN** la aplicación arranca con una sesión recordada y el servidor responde con un error inesperado distinto de 401
+- **THEN** la persona llega a la pantalla de inicio de sesión con el aviso "Algo ha ido mal en el servidor. Inténtalo de nuevo en un momento." y la sesión recordada se conserva para el siguiente arranque
+
 ### Requirement: Protección de pantallas según la sesión
 
 La aplicación web SHALL mostrar la pantalla de perfil solo a personas con sesión iniciada, SHALL mostrar las pantallas de inicio de sesión y registro solo a personas sin sesión, y SHALL redirigir cualquier dirección desconocida al perfil.
@@ -276,7 +281,7 @@ La aplicación web SHALL mostrar la pantalla de perfil solo a personas con sesi�
 
 ### Requirement: Pantalla de perfil
 
-La aplicación web SHALL mostrar en el perfil las iniciales de la persona en un círculo, su nombre completo (o "Sin nombre" si no tiene), su email, la fecha de alta bajo la etiqueta "Miembro desde" en formato largo en castellano, y un botón "Cerrar sesión".
+La aplicación web SHALL mostrar en el perfil las iniciales de la persona en un círculo, su nombre completo (o "Sin nombre" si no tiene), su email, la fecha de alta bajo la etiqueta "Miembro desde" en formato largo en castellano y en la zona horaria del navegador, y un botón "Cerrar sesión" que, mientras se procesa, aparece deshabilitado con el texto "Cerrando sesión…".
 
 #### Scenario: Perfil de una cuenta sin nombre
 
@@ -285,7 +290,7 @@ La aplicación web SHALL mostrar en el perfil las iniciales de la persona en un 
 
 #### Scenario: Fecha de alta
 
-- **WHEN** una persona dada de alta el 3 de noviembre de 2026 abre su perfil
+- **WHEN** una persona cuya fecha de alta cae el 3 de noviembre de 2026 en la zona horaria de su navegador abre su perfil
 - **THEN** ve "Miembro desde" seguido de "3 de noviembre de 2026"
 
 ### Requirement: Cierre de sesión desde la web
