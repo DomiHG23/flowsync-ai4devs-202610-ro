@@ -90,8 +90,10 @@ test.group('Tasks | responsable', (group) => {
 
     // «Cualquier tarea» es cualquier respuesta que devuelva una: además de las
     // dos lecturas, la creación y el cambio de estado también la devuelven, con
-    // su responsable incluido.
+    // su responsable incluido. En la creación ese responsable es quien mira
+    // (grace@), no Ada: también es un email que no debe salir.
     const { lista, suelta } = await lecturas(client, token, tarea)
+    assert.exists(lista, 'la tarea no aparece en la lista')
 
     const creada = await client
       .post('/api/v1/tasks')
@@ -119,10 +121,17 @@ test.group('Tasks | responsable', (group) => {
     // y el id con el que la lista distingue a dos personas que se llamen igual.
     // Cualquier otra clave (email, fechas de la cuenta, hash...) es un dato de
     // cuenta que no pinta junto a la tarea.
+    //
+    // Antes se exige que haya responsable en cada una: sin esto, una respuesta
+    // sin `assignee` no tendría claves de más y el test pasaría por vacuidad.
+    for (const [donde, recibida] of Object.entries(respuestas)) {
+      assert.isObject(recibida.assignee, `responsable en ${donde}`)
+    }
+
     const permitidas = ['fullName', 'id', 'initials']
     const sobrantes: Record<string, string[]> = {}
     for (const [donde, recibida] of Object.entries(respuestas)) {
-      const extra = Object.keys(recibida?.assignee ?? {}).filter((k) => !permitidas.includes(k))
+      const extra = Object.keys(recibida.assignee).filter((k) => !permitidas.includes(k))
       if (extra.length > 0) sobrantes[donde] = extra.sort()
     }
 
