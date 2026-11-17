@@ -1,93 +1,43 @@
-# Calibración del revisor automático
+# Instrucciones de revisión
 
-Este archivo lo lee el revisor de CI ([`.github/workflows/claude-review.yml`](.github/workflows/claude-review.yml))
-antes de revisar cada pull request. Decide qué cuenta como grave, qué no se comenta y cuánto
-ruido cabe.
+Solo para revisar pull requests de FlowSync. En castellano. Si dudas de si publicar algo, no lo publiques.
 
-Un revisor no se mide por lo que encuentra, sino por **cuántos de sus comentarios acaban en un
-cambio de código**. Un comentario que nadie va a aplicar no es neutro: cuesta leerlo y entierra
-al que sí importaba. Ante la duda, no lo publiques.
+## Evidencia: archivo y línea, no nombres
 
-## Qué es un hallazgo
+Para afirmar que algo se comporta de una manera, cita el `archivo:línea` donde lo has visto. No lo deduzcas
+del nombre de una función, un fichero o un test. Ejemplo de este repo: `listTasksValidator` parece validar
+el estado, pero `backend/app/validators/task.ts:30` lo declara con `vine.string()`, así que acepta cualquiera.
+Lo que no has abierto, no lo afirmes. Cada hallazgo incluye también el escenario que lo rompe (con esta
+entrada pasa esto en vez de aquello); sin escenario es una sospecha y no se publica.
 
-Solo es un hallazgo si puedes escribir las tres cosas:
+## Grave: se comenta siempre
 
-1. **Qué falla**, en una frase.
-2. **El escenario concreto**: con esta entrada o este estado, pasa esto en vez de aquello.
-3. **La evidencia**: `archivo:línea` del cambio y, si aplica, el requisito de
-   `openspec/specs/<capability>/spec.md` que se incumple.
+- Incumple un scenario de `openspec/specs/`. Cita el requisito.
+- Publica datos de cuenta que no debe: un transformer que `pick`ea de más, o un modelo devuelto sin transformer.
+- Una ruta que debe pedir sesión queda fuera de `.use(middleware.auth())`.
+- Una validación desaparece o se afloja (`vine.enum` → `vine.string()`, `validateUsing` → `request.all()`).
+- Un test escribe en la BD sin aislarse con `testUtils.db()`: comparte fichero SQLite con el servidor de desarrollo.
 
-Si te falta el escenario, es una sospecha, no un hallazgo, y no se publica. Un "podría ser
-problemático" sin un caso que lo rompa es ruido.
+## Sugerencia: todo lo demás
 
-## Severidad
+Falta un test, un README de capability sin actualizar, un caso límite, nombres, duplicación, legibilidad.
+**Como mucho 3 por revisión**, y ninguna si hay algo grave. El resto no se comenta: se cuenta en el resumen
+("y 4 sugerencias menores más sobre nombres").
 
-### Grave: se comenta siempre
+## Dónde no reportar
 
-Algo que, si se mergea, rompe comportamiento o expone datos.
-
-- **Incumple un scenario de la spec viva** (`openspec/specs/`). Cita el requisito.
-- **Expone datos de cuenta que no debe.** Precedente real en este repo: la lista de tareas
-  publicaba el email del responsable porque el transformer de la tarea serializaba el
-  `assignee` con `UserTransformer`. Mira qué transformer usa cada respuesta y qué campos
-  `pick`ea.
-- **Un controlador devuelve un modelo crudo** en vez de pasar por un transformer de
-  `app/transformers/` y por `serialize()`. Es la misma fuga, todavía sin descubrir.
-- **Una ruta que debe pedir autenticación queda fuera de `.use(middleware.auth())`**, o una
-  operación sobre una tarea no comprueba que el recurso exista o sea accesible para quien la pide.
-- **Una validación desaparece o se afloja**: un campo que pasa de `vine.enum` a `vine.string()`,
-  una regla `.unique()` que se cae, un `request.all()` donde había `validateUsing`.
-- **Se edita a mano un fichero generado** que se regenera solo y pisará el cambio:
-  `backend/database/schema.ts` o `backend/.adonisjs/`.
-- **Un test que escribe en la base de datos sin aislarse** (`testUtils.db()`, truncate o
-  transacción): los tests functional comparten fichero SQLite con el servidor de desarrollo y el
-  estado se filtra entre ejecuciones.
-
-### Importante: se comenta si el cambio lo introduce
-
-Algo que no rompe hoy, pero deja el proyecto peor de lo que estaba.
-
-- **Comportamiento nuevo en `auth` o `tasks` sin test** que lo cubra en `backend/tests/`.
-- **Cambian rutas, controladores, validadores o transformers de una capability y su
-  `docs/capabilities/<nombre>/README.md` no se actualiza** en el mismo PR.
-- **Un caso límite sin manejar** en lo que el PR toca: `dueDate` a `null`, una lista vacía, un
-  id que no existe, un estado que no es de los tres del dominio.
-- **En el frontend, una llamada a la API fuera de `src/lib/api.ts`**, o un error del backend que
-  llega al usuario sin pasar por `ApiError` (sin mensaje en castellano ni `fieldErrors`).
-
-### Menor: como mucho tres, y solo si no hay nada grave
-
-Legibilidad, nombres, duplicación, un import relativo donde había alias `#...`, un comentario
-que ya no dice la verdad.
-
-- **Máximo tres por revisión.** Si ves más, elige las tres que más ayuden y descarta el resto
-  sin mencionarlas.
-- **Si hay algún hallazgo grave, no publiques ninguno menor.** Lo que importa no puede quedar
-  enterrado entre sugerencias.
-- Agrupa: una sugerencia que se repite en cinco sitios es un comentario, no cinco.
-
-## Qué no se comenta nunca
-
-- **Lo que resuelve una herramienta.** Formato (Prettier), lint (ESLint en backend, oxlint en
-  frontend) y tipos (`tsc`): si el PR los rompe, el arreglo es ejecutar la herramienta, no leer
-  un comentario. Y que `docs/api/openapi.json` coincida con el código ya lo comprueba
-  `openapi:check` en CI: si lo dices tú, lo dices dos veces.
-- **El contenido de ficheros generados**, línea a línea: `backend/.adonisjs/`,
-  `backend/database/schema.ts`, `docs/api/openapi.json`, `frontend/src/components/ui/`
-  (shadcn) y `package-lock.json`.
-- **Problemas que ya estaban antes del PR** en código que el PR no toca. Si el cambio los
-  empeora, sí.
-- **Preferencias de estilo** sin un fallo detrás, felicitaciones y resúmenes de lo que hace el
-  PR: quien lo abrió ya lo sabe.
-- **Alternativas de diseño** ("yo lo habría hecho con...") sin un fallo concreto del diseño
-  actual.
+- Lo que ya vigila otra comprobación del repo:
+  - formato: Prettier, más el hook de `.claude/settings.json` en `frontend/`
+  - lint: ESLint en `backend/`, oxlint en `frontend/`
+  - tipos: `tsc` (`npm run typecheck`, y `npm run build` en `frontend/`)
+  - tests rotos: `npm test` en `backend/`
+  - que `docs/api/openapi.json` coincida con el código: `openapi:check` en CI
+- Ficheros generados: `backend/.adonisjs/`, `backend/database/schema.ts`, `docs/api/openapi.json`,
+  `frontend/src/components/ui/` y los `package-lock.json`.
+- Código que el PR no toca, salvo que el cambio lo empeore.
+- Gustos de estilo, alternativas de diseño sin un fallo concreto, felicitaciones y resúmenes de lo que hace el PR.
 
 ## Formato
 
-- **En castellano.**
-- **Cada hallazgo, como comentario en línea** sobre la línea que lo evidencia. Empieza por la
-  severidad en negrita (`**Grave**`, `**Importante**`, `**Menor**`), sigue con qué falla y el
-  escenario, y termina con el requisito de la spec si lo hay.
-- **Un único comentario de resumen** al final, con cuántos hallazgos hay de cada severidad y,
-  si hay algún grave, cuál mirar primero. Si no hay nada que merezca la pena, una línea que lo
-  diga: un PR limpio no necesita más.
+Cada hallazgo, como comentario en línea que empiece por `**Grave**` o `**Sugerencia**`. Al final, un único
+comentario con el recuento por severidad y las sugerencias descartadas, contadas. Si no hay nada, una línea.
