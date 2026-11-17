@@ -1,0 +1,49 @@
+name: OpenAPI
+
+# Comprueba que el contrato versionado en `docs/api/openapi.json` coincide con
+# lo que genera el código. Solo compara: si falla, el arreglo es correr
+# `npm run openapi:generate` en local y commitear el fichero.
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# Ningún permiso por defecto; el job pide solo el que usa.
+permissions: {}
+
+jobs:
+  openapi-check:
+    name: openapi:check
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          # El job no hace push: no hace falta dejar el token en .git/config.
+          persist-credentials: false
+
+      - uses: actions/setup-node@v5
+        with:
+          # La que pide el proyecto (README y `engines` de los paquetes de Adonis).
+          node-version: 24
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Instalar dependencias del backend
+        run: npm ci
+
+      # `start/env.ts` valida el entorno al arrancar la app, y el comando la
+      # arranca para leer el router. Mismo setup que en local: la clave es de
+      # usar y tirar, solo existe durante el job.
+      - name: Preparar el entorno
+        run: |
+          cp .env.example .env
+          node ace generate:key
+
+      - name: Comprobar el documento OpenAPI
+        run: npm run openapi:check
