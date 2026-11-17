@@ -1,0 +1,79 @@
+name: Revisión automática
+
+# Lanza Claude Code como revisor sobre cada pull request y publica lo que
+# encuentra como comentarios en el propio PR. Qué falta para que funcione y
+# en qué se gasta el dinero: docs/ci-revisor.md.
+on:
+  pull_request:
+    types: [opened, synchronize, ready_for_review, reopened]
+
+# Ningún permiso por defecto; el job pide solo los que usa.
+permissions: {}
+
+# Un push nuevo al mismo PR cancela la revisión en curso: revisar un commit
+# que ya no es la cabeza del PR es gastar dinero en algo que nadie va a leer.
+concurrency:
+  group: claude-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    name: Revisión de Claude
+    # En un repo público GitHub no pasa secretos a los PR que vienen de un
+    # fork: sin credencial la acción fallaría en rojo. Se salta en vez de
+    # fallar. Ver docs/ci-revisor.md.
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read # leer el repositorio
+      pull-requests: write # publicar los comentarios en el PR
+      id-token: write # OIDC: la acción lo usa para autenticarse como la app de Claude en GitHub
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - uses: anthropics/claude-code-action@v1
+        with:
+          # Camino de suscripción (token de `claude setup-token`). Para usar
+          # una clave de API de la consola, cambia esta línea por
+          #   anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          # Las dos entradas no son intercambiables: ver docs/ci-revisor.md.
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+
+          prompt: |
+            REPO: ${{ github.repository }}
+            PR NUMBER: ${{ github.event.pull_request.number }}
+
+            Revisa este pull request de FlowSync y publica lo que encuentres en el propio PR.
+            Escribe en castellano.
+
+            Antes de nada, lee `REVIEW.md` en la raíz del repositorio: es el archivo de
+            calibración y manda sobre qué cuenta como grave y cuántas sugerencias menores
+            caben. Si no existe, revisa con tu propio criterio y prioriza lo que rompa
+            comportamiento sobre el estilo.
+
+            Cómo trabajar:
+            - El cambio lo sacas con `gh pr diff ${{ github.event.pull_request.number }}` y el
+              contexto con `gh pr view ${{ github.event.pull_request.number }}`.
+            - Para abrir ficheros del repositorio usa Read, Grep y Glob.
+            - No redirijas la salida de ningún comando a ficheros ni la encadenes con tuberías
+              (`>`, `>>`, `|`, `tee`): lee la salida directa del comando. Esos comandos no
+              están permitidos, se deniegan y cada intento te cuesta un turno.
+            - No modifiques ningún fichero.
+
+            Cómo publicar:
+            - Cada hallazgo sobre una línea concreta, como comentario en línea con
+              `mcp__github_inline_comment__create_inline_comment`, diciendo qué falla, por
+              qué y la evidencia en el código.
+            - Al terminar, un único comentario de resumen con `gh pr comment`. Si no
+              encuentras nada que merezca la pena, dilo en ese comentario en una línea.
+
+          claude_args: |
+            --model sonnet
+            --effort medium
+            --max-turns 40
+            --permission-mode default
+            --allowedTools "Read,Grep,Glob,mcp__github_inline_comment__create_inline_comment,Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*)"
