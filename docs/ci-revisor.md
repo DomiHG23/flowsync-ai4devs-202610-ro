@@ -20,16 +20,19 @@ Con el workflow commiteado no basta. Faltan estos pasos, en este orden:
 3. **Crear el secreto con la credencial**, por uno de los dos caminos de la sección siguiente.
    Desde la terminal: `gh secret set <NOMBRE>` (pide el valor sin dejarlo en el historial), o en
    *Settings → Secrets and variables → Actions*.
-4. **Escribir el archivo de calibración, `REVIEW.md`, en la raíz.** El prompt le dice al revisor
-   que lo lea antes que nada y que mande sobre qué es grave y cuántas sugerencias menores caben.
-   **Todavía no existe**: hasta que exista, el revisor usa su propio criterio. El nombre lo
-   fija el prompt del workflow; si lo cambias, cámbialo en los dos sitios.
-5. **Subir la rama y abrir un PR.** Con `pull_request`, GitHub ejecuta el workflow tal como está
+4. **Subir la rama y abrir un PR.** Con `pull_request`, GitHub ejecuta el workflow tal como está
    en el propio PR, así que el PR que lo introduce ya se revisa a sí mismo. Ese primer run es la
    prueba de que los pasos anteriores están bien.
 
 La acción solo se ejecuta si quien abre el PR tiene permiso de escritura en el repositorio; los
 bots están excluidos por defecto.
+
+## Calibración
+
+El revisor lee [`REVIEW.md`](../REVIEW.md), en la raíz, antes de revisar nada. Ahí se decide
+qué es grave, qué no se comenta y que caben como mucho tres sugerencias menores. Para ajustar
+cuánto ruido hace el revisor se toca ese archivo, no el workflow. El nombre lo fija el prompt
+del workflow: si lo cambias, cámbialo en los dos sitios.
 
 ## La credencial: dos caminos
 
